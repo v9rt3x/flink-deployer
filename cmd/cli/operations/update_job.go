@@ -14,15 +14,16 @@ import (
 // UpdateJob represents the configuration used for
 // updating a job on the Flink cluster
 type UpdateJob struct {
-	JobNameBase           string
-	LocalFilename         string
-	RemoteFilename        string
-	APIToken              string
-	EntryClass            string
-	Parallelism           int
-	ProgramArgs           string
-	SavepointDir          string
-	AllowNonRestoredState bool
+	JobNameBase               string
+	LocalFilename             string
+	RemoteFilename            string
+	APIToken                  string
+	EntryClass                string
+	Parallelism               int
+	ProgramArgs               string
+	SavepointDir              string
+	AllowNonRestoredState     bool
+	IsNewJobSubmissionFlagSet bool
 }
 
 func (o RealOperator) filterJobsByRunningAndNameBase(jobs []flink.Job, jobNameBase string) (ret []flink.Job) {
@@ -97,7 +98,15 @@ func (o RealOperator) Update(u UpdateJob) error {
 	}
 	switch len(runningJobs) {
 	case 0:
-		return fmt.Errorf("no instance running for job name base \"%v\". Aborting update", u.JobNameBase)
+		if u.IsNewJobSubmissionFlagSet {
+			err = o.Deploy(deploy)
+			if err != nil {
+				return err
+			}
+			return nil
+		} else {
+			return fmt.Errorf("no instance running for job name base \"%v\". Aborting update", u.JobNameBase)
+		}
 	case 1:
 		log.Printf("found exactly 1 running job with base name: \"%v\"", u.JobNameBase)
 		job := runningJobs[0]
